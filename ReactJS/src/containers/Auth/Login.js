@@ -79,7 +79,7 @@ class Login extends Component {
                                 value={this.state.username}
                                 onChange={(event) => this.handleOnChangeUserName(event)}
                             ></input>
-                            <i class="fa-solid fa-eye" ></i>
+                            <i className="fa-solid fa-eye" ></i>
 
                         </div>
 
