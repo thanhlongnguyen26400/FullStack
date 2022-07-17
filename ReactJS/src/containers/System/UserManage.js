@@ -2,8 +2,10 @@ import React, { Component } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
 import './UserManage.scss';
-import { getAllUsers, createNewUserService } from '../../services/userService';
+import { getAllUsers, createNewUserService, deleteUser, editUserService } from '../../services/userService';
 import ModalUser from './ModalUser';
+import { emitter } from "../../utils/emitter"
+import ModalEditUser from './ModalEditUser';
 
 
 class UserManage extends Component {
@@ -13,6 +15,8 @@ class UserManage extends Component {
         this.state = {
             arrUsers: [],
             isOpen: false,
+            userEdit: {},
+            status: ''
         }
     }
 
@@ -31,14 +35,23 @@ class UserManage extends Component {
 
     handleAddNewUser = () => {
         this.setState({
-            isOpen: true
+            isOpen: true,
+            status: 'CREATE'
         })
     }
+
     toggleUserModal = () => {
         this.setState({
             isOpen: !this.state.isOpen,
         })
     }
+
+    // toggleEditUserModal = () => {
+    //     this.setState({
+    //         isOpenEdit: !this.state.isOpenEdit,
+    //     })
+    // }
+
 
     createNewUser = async (data) => {
         try {
@@ -51,6 +64,9 @@ class UserManage extends Component {
                 this.setState({
                     isOpen: false
                 })
+                // emitter.emit('EVENT_CLEAR_MODAL_DATA', { 'id': 'your id' // cbhuyen data }) 
+
+                emitter.emit('EVENT_CLEAR_MODAL_DATA')
             }
         }
         catch (e) {
@@ -58,17 +74,78 @@ class UserManage extends Component {
         }
     }
 
+    handleDeleteUser = async (data) => {
+        try {
+            let response = await deleteUser(data.id);
+            if (response && response.errCode !== 0) {
+                alert(response.errMessage)
+            }
+            else {
+                await this.getAllUser()
+                this.setState({
+                    ...this.state
+                })
+            }
+        }
+        catch (e) {
+            console.log(e)
+        }
+
+    }
+
+    handleEditUser = async (user) => {
+        this.setState({
+            isOpen: true,
+            userEdit: user,
+            status: 'EDIT'
+        })
+    }
+
+    handleUpdateUser = async (user) => {
+        try {
+            let response = await editUserService(user);
+            console.log(">>>> check res ", response)
+
+            if (response && response.errCode !== 0) {
+                alert(response.errMessage)
+            }
+            else {
+                this.state.isOpen = false
+                await this.getAllUser();
+                this.setState({
+                    ...this.state
+                })
+            }
+        }
+        catch (e) {
+            console.log(e)
+        }
+    }
+
     render() {
         // console.log(">>check render : ", this.state.arrUsers);
+        console.log(">>check status: ", this.state.status);
         let { arrUsers } = this.state
         return (
-
             <div className="users-container">
-                <ModalUser
-                    isOpen={this.state.isOpen}
-                    toggleUserModal={this.toggleUserModal}
-                    createNewUser={this.createNewUser}
-                />
+                {
+                    this.state.isOpen && this.state.status === 'CREATE' &&
+                    <ModalUser
+                        isOpen={this.state.isOpen}
+                        toggleUserModal={this.toggleUserModal}
+                        createNewUser={this.createNewUser}
+                    />
+                }
+
+                {
+                    this.state.isOpen && this.state.status === 'EDIT' &&
+                    <ModalEditUser
+                        isOpen={this.state.isOpen}
+                        toggleUserModal={this.toggleUserModal}
+                        currentUser={this.state.userEdit}
+                        updateUser={this.handleUpdateUser}
+                    />
+                }
                 <div className='title text-center'>Manage users with thanh long</div>
                 <div className='mx-1'>
                     <button className='btn btn-primary px-3'
@@ -97,8 +174,8 @@ class UserManage extends Component {
                                             <td>{item.lastName}</td>
                                             <td>{item.address}</td>
                                             <td>
-                                                <button><i className='fas fa-pencil'></i>Edit</button>
-                                                <button>Delete</button>
+                                                <button onClick={() => this.handleEditUser(item)}>Edit</button>
+                                                <button onClick={() => this.handleDeleteUser(item)}>Delete</button>
                                             </td>
                                         </tr>
                                     )
